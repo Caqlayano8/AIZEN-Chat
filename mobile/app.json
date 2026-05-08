@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Aizentr",
+    "slug": "aizentr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "aizentr",
+    "splash": {
+      "backgroundColor": "#6c3beb",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aizentr.crm",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6c3beb"
+      },
+      "package": "com.aizentr.crm",
+      "versionCode": 1
+    },
+    "plugins": ["expo-router"]
+  }
+}
