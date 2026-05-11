@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FiSearch, FiBell, FiUser, FiLogOut, FiSettings, FiChevronDown, FiMenu } from "react-icons/fi";
 import { useAppStore } from "@/lib/store";
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -31,6 +32,9 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
         {/* Notifications */}
         <div className="relative">
           <button

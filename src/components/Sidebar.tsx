@@ -17,6 +17,7 @@ import {
   FiHeadphones,
   FiPhone,
   FiShield,
+  FiKey,
 } from "react-icons/fi";
 import { useAppStore } from "@/lib/store";
 
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/sesli-destek", label: "Sesli Destek", icon: FiPhone },
   { href: "/ayarlar", label: "Ayarlar", icon: FiSettings },
   { href: "/admin", label: "Admin Panel", icon: FiShield },
+  { href: "/admin/lisanslar", label: "Lisanslar", icon: FiKey },
 ];
 
 export function Sidebar() {

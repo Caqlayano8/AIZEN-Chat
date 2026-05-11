@@ -590,5 +590,142 @@ npx tsx prisma/seed.ts  # Demo veri yükle
 
 ---
 
+---
+
+## 15. Çoklu Dil Desteği (i18n)
+
+AIZEN Chat 6 dili destekler:
+
+| Dil | Kod | Yön |
+|-----|-----|-----|
+| Türkçe | tr | LTR |
+| İngilizce | en | LTR |
+| Almanca | de | LTR |
+| Fransızca | fr | LTR |
+| Arapça | ar | RTL |
+| İspanyolca | es | LTR |
+
+### Nasıl Çalışır?
+
+1. **I18n Provider**: `src/lib/i18n/index.tsx` — React Context tabanlı dil yönetimi
+2. **Çeviri Dosyası**: `src/lib/i18n/locales.ts` — Tüm dillerin çevirileri (150+ anahtar)
+3. **Dil Seçici**: `src/components/LanguageSwitcher.tsx` — Header'daki bayrak+isim dil değiştirici
+4. **localStorage**: Seçilen dil tarayıcıda saklanır, sayfa yenilendiğinde korunur
+
+### Kullanım
+```typescript
+import { useI18n } from "@/lib/i18n";
+
+function MyComponent() {
+  const { t, locale, setLocale, dir } = useI18n();
+  
+  return (
+    <div dir={dir}>
+      <h1>{t.dash_title}</h1>
+      <p>{t.dash_totalConversations}</p>
+    </div>
+  );
+}
+```
+
+### Yeni Dil Ekleme
+1. `src/lib/i18n/locales.ts` dosyasında yeni dil nesnesi oluşturun
+2. `Locale` tipine yeni dil kodunu ekleyin
+3. `localeNames` ve `localeFlags` objelerine ekleyin
+4. `translations` objesine yeni dili ekleyin
+
+---
+
+## 16. Lisans Sistemi
+
+### Lisans Anahtarı Yapısı
+```
+[PLAN]-[XXXX]-[XXXX]-[XXXX]-[XXXX]
+
+Örnekler:
+STR-A3F2-B8C1-D4E5-F6A7   → Starter plan
+PRO-C9D8-E7F6-A5B4-C3D2   → Professional plan
+ENT-F1E2-D3C4-B5A6-9807   → Enterprise plan
+```
+
+### Plan Karşılaştırması
+
+| Özellik | Başlangıç (STR) | Profesyonel (PRO) | Kurumsal (ENT) |
+|---------|-----------------|-------------------|----------------|
+| Maks. Kullanıcı | 3 | 15 | 100 |
+| Maks. Kişi | 500 | 5.000 | 50.000 |
+| Maks. Kanal | 2 | 5 | 10 |
+| Mesajlaşma | ✓ | ✓ | ✓ |
+| Rehber/CRM | ✓ | ✓ | ✓ |
+| Bildirimler | ✓ | ✓ | ✓ |
+| Kampanyalar | ✗ | ✓ | ✓ |
+| Randevular | ✗ | ✓ | ✓ |
+| Siparişler | ✗ | ✓ | ✓ |
+| Sesli Destek | ✗ | ✓ | ✓ |
+| AI Önerileri | ✗ | ✓ | ✓ |
+| AI Ses Modülü | ✗ | ✗ | ✓ |
+| Çağrı Yönlendirme | ✗ | ✗ | ✓ |
+| API Erişimi | ✗ | ✗ | ✓ |
+| Beyaz Etiket | ✗ | ✗ | ✓ |
+| Öncelikli Destek | ✗ | ✗ | ✓ |
+
+### Lisans Anahtarı Üretme (API)
+
+```bash
+# Yeni lisans oluştur
+curl -X POST http://localhost:3001/api/license \
+  -H "Content-Type: application/json" \
+  -d '{
+    "companyId": "COMPANY_ID",
+    "plan": "professional",
+    "durationMonths": 12
+  }'
+
+# Yanıt:
+{
+  "id": "clxxx...",
+  "key": "PRO-A3F2-B8C1-D4E5-F6A7",
+  "plan": "professional",
+  "maxUsers": 15,
+  "maxContacts": 5000,
+  "maxChannels": 5,
+  "features": ["messaging", "contacts", ...],
+  "signature": "hmac-sha256-hash",
+  "isActive": true,
+  "expiresAt": "2027-05-02T..."
+}
+```
+
+### Lisans Doğrulama
+
+```bash
+# Lisans anahtarıyla doğrulama
+curl http://localhost:3001/api/license?key=PRO-A3F2-B8C1-D4E5-F6A7
+
+# Yanıt:
+{
+  "license": { ... },
+  "validation": {
+    "valid": true
+  }
+}
+```
+
+### Lisans Güvenliği
+- HMAC-SHA256 imza ile anahtar doğrulama
+- `LICENSE_SECRET` ortam değişkeni ile imza anahtarı
+- Süre kontrolü (tarih bazlı geçerlilik)
+- Veritabanında aktif/pasif durumu
+
+### Admin Panelinden Yönetim
+`/admin/lisanslar` sayfasından:
+- Yeni lisans anahtarı oluşturma (plan ve süre seçimi)
+- Mevcut lisansları görüntüleme ve arama
+- Lisans detayları (özellikler, limitler, süre)
+- Lisans aktifleştirme/devre dışı bırakma
+- Anahtarı panoya kopyalama
+
+---
+
 *Bu dokümantasyon AIZEN Chat v1.0 için hazırlanmıştır.*
 *Tarih: Mayıs 2026*

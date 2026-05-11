@@ -51,6 +51,7 @@ model Company {
   voiceCalls         VoiceCall[]
   callRoutingRules   CallRoutingRule[]
   aiVoiceSettings    AIVoiceSettings?
+  licenses           License[]
 }
 
 model Contact {
@@ -246,4 +247,22 @@ model AIVoiceSettings {
   maxCallDuration Int       @default(300)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model License {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  plan          String    @default("starter")
+  maxUsers      Int       @default(3)
+  maxContacts   Int       @default(500)
+  maxChannels   Int       @default(2)
+  features      String    @default("[]")
+  signature     String
+  isActive      Boolean   @default(true)
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
