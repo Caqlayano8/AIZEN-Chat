@@ -15,6 +15,8 @@ import {
   FiChevronRight,
   FiZap,
   FiHeadphones,
+  FiPhone,
+  FiShield,
 } from "react-icons/fi";
 import { useAppStore } from "@/lib/store";
 
@@ -26,7 +28,9 @@ const navItems = [
   { href: "/randevular", label: "Randevular", icon: FiCalendar },
   { href: "/bildirimler", label: "Bildirimler", icon: FiBell, badge: 3 },
   { href: "/kargo", label: "Sipariş / Kargo", icon: FiPackage },
+  { href: "/sesli-destek", label: "Sesli Destek", icon: FiPhone },
   { href: "/ayarlar", label: "Ayarlar", icon: FiSettings },
+  { href: "/admin", label: "Admin Panel", icon: FiShield },
 ];
 
 export function Sidebar() {
@@ -47,7 +51,7 @@ export function Sidebar() {
         </div>
         {sidebarOpen && (
           <div className="animate-fade-in">
-            <span className="text-lg font-bold text-white tracking-tight">Aizentr</span>
+            <span className="text-lg font-bold text-white tracking-tight">AIZEN Chat</span>
             <span className="text-[10px] text-purple-300 block -mt-1">CRM Platform</span>
           </div>
         )}

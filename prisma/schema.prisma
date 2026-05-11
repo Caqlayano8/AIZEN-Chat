@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  avatar        String    @default("")
+  role          String    @default("agent")
+  phone         String    @default("")
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assignedConversations Conversation[] @relation("AssignedAgent")
+  assignedAppointments  Appointment[]
+  sentMessages          Message[]
+  voiceCallsAsAgent     VoiceCall[]    @relation("AgentCalls")
+}
+
+model Company {
+  id            String    @id @default(cuid())
+  name          String
+  logo          String    @default("")
+  phone         String    @default("")
+  email         String    @default("")
+  website       String    @default("")
+  address       String    @default("")
+  industry      String    @default("")
+  plan          String    @default("starter")
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  users              User[]
+  contacts           Contact[]
+  conversations      Conversation[]
+  campaigns          Campaign[]
+  appointments       Appointment[]
+  orders             Order[]
+  notifications      Notification[]
+  connectedChannels  ConnectedChannel[]
+  voiceCalls         VoiceCall[]
+  callRoutingRules   CallRoutingRule[]
+  aiVoiceSettings    AIVoiceSettings?
+}
+
+model Contact {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String    @default("")
+  email         String    @default("")
+  avatar        String    @default("")
+  companyName   String    @default("")
+  tags          String    @default("[]")
+  source        String    @default("webchat")
+  status        String    @default("lead")
+  notes         String    @default("")
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  conversations Conversation[]
+  appointments  Appointment[]
+  orders        Order[]
+  voiceCalls    VoiceCall[]
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  contactId     String
+  contact       Contact   @relation(fields: [contactId], references: [id])
+  channel       String    @default("webchat")
+  status        String    @default("open")
+  priority      String    @default("medium")
+  assignedToId  String?
+  assignedTo    User?     @relation("AssignedAgent", fields: [assignedToId], references: [id])
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  lastActivity  DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages      Message[]
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  content         String
+  type            String    @default("text")
+  sender          String    @default("agent")
+  senderId        String?
+  senderUser      User?     @relation(fields: [senderId], references: [id])
+  channel         String    @default("webchat")
+  status          String    @default("sent")
+  aiSuggestion    String?
+  timestamp       DateTime  @default(now())
+}
+
+model Campaign {
+  id              String    @id @default(cuid())
+  name            String
+  description     String    @default("")
+  type            String    @default("broadcast")
+  channel         String    @default("whatsapp")
+  status          String    @default("draft")
+  targetAudience  String    @default("")
+  sentCount       Int       @default(0)
+  deliveredCount  Int       @default(0)
+  readCount       Int       @default(0)
+  responseCount   Int       @default(0)
+  template        String?
+  scheduledAt     DateTime?
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Appointment {
+  id            String    @id @default(cuid())
+  contactId     String
+  contact       Contact   @relation(fields: [contactId], references: [id])
+  title         String
+  description   String    @default("")
+  date          String
+  time          String
+  duration      Int       @default(30)
+  status        String    @default("scheduled")
+  type          String    @default("meeting")
+  assignedToId  String
+  assignedTo    User      @relation(fields: [assignedToId], references: [id])
+  location      String    @default("")
+  notes         String    @default("")
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Notification {
+  id            String    @id @default(cuid())
+  title         String
+  message       String
+  type          String    @default("system")
+  read          Boolean   @default(false)
+  actionUrl     String?
+  icon          String?
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  createdAt     DateTime  @default(now())
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  orderNumber     String    @unique
+  contactId       String
+  contact         Contact   @relation(fields: [contactId], references: [id])
+  products        String    @default("[]")
+  totalAmount     Float     @default(0)
+  currency        String    @default("TRY")
+  status          String    @default("pending")
+  trackingNumber  String?
+  trackingUrl     String?
+  carrier         String?
+  shippingAddress String    @default("")
+  estimatedDelivery String?
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model ConnectedChannel {
+  id            String    @id @default(cuid())
+  type          String
+  identifier    String    @default("")
+  status        String    @default("pending")
+  config        String    @default("{}")
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  connectedAt   DateTime  @default(now())
+}
+
+model VoiceCall {
+  id            String    @id @default(cuid())
+  contactId     String
+  contact       Contact   @relation(fields: [contactId], references: [id])
+  agentId       String?
+  agent         User?     @relation("AgentCalls", fields: [agentId], references: [id])
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  direction     String    @default("inbound")
+  status        String    @default("ringing")
+  duration      Int       @default(0)
+  recordingUrl  String?
+  transcription String?
+  forwardedTo   String?
+  aiHandled     Boolean   @default(false)
+  aiTranscript  String?
+  startedAt     DateTime  @default(now())
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model CallRoutingRule {
+  id            String    @id @default(cuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  name          String
+  description   String    @default("")
+  isActive      Boolean   @default(true)
+  priority      Int       @default(0)
+  condition     String    @default("all")
+  action        String    @default("ring_agent")
+  targetNumber  String?
+  targetAgentId String?
+  aiGreeting    String?
+  maxWaitTime   Int       @default(30)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AIVoiceSettings {
+  id              String    @id @default(cuid())
+  companyId       String    @unique
+  company         Company   @relation(fields: [companyId], references: [id])
+  isEnabled       Boolean   @default(false)
+  voiceModel      String    @default("alloy")
+  language        String    @default("tr-TR")
+  greeting        String    @default("Merhaba, AIZEN Chat yapay zeka asistanına hoş geldiniz. Size nasıl yardımcı olabilirim?")
+  personality     String    @default("professional")
+  knowledgeBase   String    @default("{}")
+  fallbackAction  String    @default("transfer_agent")
+  maxCallDuration Int       @default(300)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}

@@ -1,111 +1,109 @@
-# Aizentr - Akıllı CRM & İletişim Platformu
+# AIZEN Chat
 
-Kommo benzeri, yapay zeka destekli profesyonel CRM ve çok kanallı iletişim platformu.
+**Yapay Zeka Destekli Profesyonel CRM & İletişim Platformu**
+
+AIZEN Chat, WhatsApp tarzı arayüzle tüm sosyal medya kanallarını tek panelden yönetmenizi sağlayan, yapay zeka destekli profesyonel bir CRM platformudur.
 
 ## Özellikler
 
-### Çok Kanallı Mesajlaşma
-- WhatsApp Business API entegrasyonu
-- Instagram DM yönetimi
-- Telegram Bot desteği
-- Facebook Messenger
-- E-posta ve SMS
-- Web Chat widget
+### Mesajlaşma & İletişim
+- **Çok Kanallı Mesajlaşma** — WhatsApp, Instagram, Telegram, Facebook, E-posta, SMS, Web Chat
+- **Yapay Zeka Destekli Cevaplar** — Otomatik mesaj önerileri
+- **Gerçek Zamanlı Bildirimler**
 
-### Yapay Zeka Desteği
-- Otomatik müşteri karşılama ve cevaplama
-- Akıllı mesaj yönlendirme
-- Duygu analizi
-- AI destekli kampanya metni oluşturma
+### Sesli Destek & AI
+- **Sesli Canlı Destek** — WebRTC tabanlı sesli görüşme
+- **Konuşan AI Modülü** — Sesli yapay zeka müşteri desteği (STT + NLP + TTS)
+- **Çağrı Yönlendirme** — Mesai saatleri, meşgul, cevapsız durumlarına göre otomatik yönlendirme
+- **Farklı Numaralara Yönlendirme** — Sıralı ve koşullu numara yönlendirme
 
-### CRM & Müşteri Yönetimi
-- Detaylı müşteri profilleri ve etiketleme
-- Lead takibi ve pipeline yönetimi
-- Toplu içe/dışa aktarma
-- Müşteri segmentasyonu
+### CRM & Yönetim
+- **Müşteri Yönetimi** — Profiller, etiketleme, filtreleme, toplu işlemler
+- **Kampanya Yönetimi** — Broadcast, drip, tetikleyici kampanyalar
+- **Randevu Sistemi** — Liste ve takvim görünümü
+- **Sipariş & Kargo Takip** — Detaylı sipariş ve kargo durumu
+- **Süper Admin Paneli** — Tüm şirketleri yönetme
 
-### Kampanya Yönetimi
-- Toplu mesaj gönderimi (Broadcast)
-- Drip kampanyalar
-- Otomatik tetikleyiciler
-- Performans raporları
+### Mobil
+- **Android & iOS** — React Native / Expo ile mobil uygulama
 
-### Randevu Sistemi
-- Online randevu planlama
-- Otomatik hatırlatmalar
-- Takvim görünümü
-- Müşteri onay sistemi
+## Teknolojiler
 
-### Sipariş & Kargo Takip
-- Sipariş yönetimi
-- Kargo durumu takibi
-- Otomatik müşteri bildirimleri
-- Gelir raporları
-
-### Yönetim Panelleri
-- **Admin Panel**: Tüm şirketleri yönetme, sistem ayarları
-- **Şirket Paneli**: Her şirketin kendi CRM paneli
-
-## Teknoloji Stack
-
-### Web Platformu
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS 4
-- **State**: Zustand
-- **Icons**: React Icons
-
-### Mobil Uygulama
-- **Framework**: React Native / Expo
-- **Navigation**: React Navigation
-- **Platform**: Android & iOS
+| Katman | Teknoloji |
+|--------|-----------|
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4 |
+| State | Zustand |
+| Backend | Next.js API Routes, Prisma ORM, SQLite |
+| Auth | NextAuth.js (JWT) |
+| Mobil | React Native, Expo |
+| AI | OpenAI API (GPT-4, Whisper, TTS) |
 
 ## Kurulum
 
-### Web
 ```bash
-cd Aizentr
+# Klonla
+git clone https://github.com/Caqlayano8/AIZEN-Chat.git
+cd AIZEN-Chat
+
+# Bağımlılıkları yükle
 npm install
+
+# Veritabanı kurulumu
+npx prisma migrate dev --name init
+npx prisma generate
+npx tsx prisma/seed.ts
+
+# Çalıştır
 npm run dev
 ```
 
-### Mobil
-```bash
-cd Aizentr/mobile
-npm install
-npx expo start
-```
+Uygulama: http://localhost:3001
 
-## Yapı
+## Demo Giriş
 
-```
-Aizentr/
-├── src/
-│   ├── app/
-│   │   ├── (panel)/          # Yönetim paneli sayfaları
-│   │   │   ├── dashboard/    # Ana panel
-│   │   │   ├── mesajlar/     # Mesajlaşma (WhatsApp tarzı)
-│   │   │   ├── rehber/       # CRM / Kişi yönetimi
-│   │   │   ├── kampanyalar/  # Kampanya yönetimi
-│   │   │   ├── randevular/   # Randevu sistemi
-│   │   │   ├── bildirimler/  # Bildirimler
-│   │   │   ├── kargo/        # Sipariş & kargo takip
-│   │   │   └── ayarlar/      # Şirket & sistem ayarları
-│   │   ├── giris/            # Giriş sayfası
-│   │   ├── kayit/            # Kayıt sayfası (şirket kayıt)
-│   │   └── page.tsx          # Landing page
-│   ├── components/           # Paylaşılan bileşenler
-│   ├── lib/                  # Yardımcı fonksiyonlar ve store
-│   └── types/                # TypeScript tip tanımları
-├── mobile/                   # React Native mobil uygulama
-│   ├── src/
-│   │   ├── screens/          # Ekranlar
-│   │   ├── components/       # Bileşenler
-│   │   └── lib/              # Yardımcı
-│   ├── App.tsx               # Ana uygulama
-│   └── app.json              # Expo yapılandırması
-└── README.md
-```
+| Rol | E-posta | Şifre |
+|-----|---------|-------|
+| Admin | admin@aizenchat.com | demo123 |
+| Agent | ayse@aizenchat.com | demo123 |
+| Super Admin | superadmin@aizenchat.com | superadmin123 |
+
+## Sayfalar
+
+| Sayfa | Yol | Açıklama |
+|-------|-----|----------|
+| Landing | `/` | Ürün tanıtım, fiyatlandırma |
+| Giriş | `/giris` | Kullanıcı girişi |
+| Kayıt | `/kayit` | 2 adımlı şirket kaydı |
+| Dashboard | `/dashboard` | İstatistikler, grafikler |
+| Mesajlar | `/mesajlar` | WhatsApp tarzı mesajlaşma |
+| Rehber | `/rehber` | CRM / Müşteri yönetimi |
+| Kampanyalar | `/kampanyalar` | Kampanya yönetimi |
+| Randevular | `/randevular` | Randevu sistemi |
+| Bildirimler | `/bildirimler` | Bildirimler |
+| Sipariş/Kargo | `/kargo` | Sipariş & kargo takip |
+| Sesli Destek | `/sesli-destek` | Sesli canlı destek + AI |
+| Ayarlar | `/ayarlar` | 8 tab ayarlar |
+| Admin | `/admin` | Süper admin paneli |
+
+## API Endpoints
+
+- `POST /api/auth/register` — Kayıt
+- `GET/POST /api/contacts` — Kişiler
+- `GET/POST /api/conversations` — Görüşmeler
+- `GET/POST /api/messages` — Mesajlar
+- `GET/POST/PUT /api/campaigns` — Kampanyalar
+- `GET/POST/PUT /api/appointments` — Randevular
+- `GET/POST/PUT /api/orders` — Siparişler
+- `GET/POST/PUT /api/voice` — Sesli aramalar
+- `GET/POST/PUT/DELETE /api/voice/routing` — Çağrı yönlendirme
+- `GET/PUT /api/voice/ai-settings` — AI ses ayarları
+- `GET /api/dashboard` — Dashboard istatistikleri
+- `GET/PUT /api/companies` — Şirket yönetimi (admin)
+
+## Dokümantasyon
+
+Detaylı teknik dokümantasyon: [`docs/AIZEN-Chat-Teknik-Dokumantasyon.md`](docs/AIZEN-Chat-Teknik-Dokumantasyon.md)
 
 ## Lisans
 
-Tüm hakları saklıdır.
+MIT
