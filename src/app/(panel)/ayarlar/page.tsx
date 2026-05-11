@@ -42,6 +42,43 @@ const availableChannels = [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("company");
+  const [connectedChannels, setConnectedChannels] = useState(mockCompany.connectedChannels);
+  const [aiSettings, setAiSettings] = useState({
+    autoReply: true,
+    smartRouting: true,
+    sentimentAnalysis: false,
+    tone: 'professional'
+  });
+
+  const addChannel = (type: string) => {
+    alert(`${type} kanalı bağlanıyor...`);
+    // Demo için basit ekleme
+    const newChannel = {
+      type: type as any,
+      identifier: `${type}@demo.com`,
+      status: "connected" as const,
+      connectedAt: new Date().toLocaleDateString('tr-TR')
+    };
+    setConnectedChannels([...connectedChannels, newChannel]);
+  };
+
+  const toggleChannelStatus = (index: number) => {
+    const updated = [...connectedChannels];
+    updated[index].status = updated[index].status === "connected" ? "disconnected" : "connected";
+    setConnectedChannels(updated);
+  };
+
+  const removeChannel = (index: number) => {
+    if (confirm('Bu kanalı kaldırmak istediğinizden emin misiniz?')) {
+      setConnectedChannels(connectedChannels.filter((_, i) => i !== index));
+    }
+  };
+
+  const toggleAiSetting = (key: keyof typeof aiSettings) => {
+    if (typeof aiSettings[key] === 'boolean') {
+      setAiSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    }
+  };
 
   return (
     <div className="flex gap-6 animate-fade-in">
@@ -114,7 +151,12 @@ function CompanySettings() {
           </div>
         ))}
       </div>
-      <button className="px-6 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">Kaydet</button>
+      <button 
+        onClick={() => alert('Şirket bilgileri kaydedildi!')}
+        className="px-6 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700"
+      >
+        Kaydet
+      </button>
     </div>
   );
 }
@@ -125,7 +167,7 @@ function ChannelSettings() {
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Bağlı Kanallar</h3>
         <div className="space-y-3">
-          {mockCompany.connectedChannels.map((ch) => (
+          {connectedChannels.map((ch, index) => (
             <div key={ch.type} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
               <div className="flex items-center gap-3">
                 <ChannelIcon channel={ch.type} size="lg" />
@@ -141,9 +183,25 @@ function ChannelSettings() {
                   {ch.status === "connected" ? "Bağlı" : "Bağlantı Kesildi"}
                 </span>
                 {ch.status === "disconnected" && (
-                  <button className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"><FiRefreshCw className="w-4 h-4" /></button>
+                  <button 
+                    onClick={() => toggleChannelStatus(index)}
+                    className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"
+                  >
+                    <FiRefreshCw className="w-4 h-4" />
+                  </button>
                 )}
-                <button className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"><FiSettings className="w-4 h-4" /></button>
+                <button 
+                  onClick={() => alert('Ayarlar modalı açılacak...')}
+                  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"
+                >
+                  <FiSettings className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => removeChannel(index)}
+                  className="p-1.5 rounded-lg hover:bg-red-200 text-red-400"
+                >
+                  <FiTrash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
@@ -162,7 +220,10 @@ function ChannelSettings() {
                 <h4 className="font-medium text-gray-900 group-hover:text-purple-600">{ch.name}</h4>
               </div>
               <p className="text-xs text-gray-500 mb-3">{ch.desc}</p>
-              <button className="text-xs text-purple-600 font-medium hover:text-purple-700 flex items-center gap-1">
+              <button 
+                onClick={() => addChannel(ch.type)}
+                className="text-xs text-purple-600 font-medium hover:text-purple-700 flex items-center gap-1"
+              >
                 <FiPlus className="w-3 h-3" /> Bağlan
               </button>
             </div>
@@ -178,7 +239,10 @@ function TeamSettings() {
     <div className="bg-white rounded-2xl border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold text-gray-900">Ekip Yönetimi</h3>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
+        <button 
+          onClick={() => alert('Yeni üye davet modalı açılacak...')}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700"
+        >
           <FiPlus className="w-4 h-4" /> Üye Davet Et
         </button>
       </div>
@@ -201,7 +265,12 @@ function TeamSettings() {
                 {m.role === "owner" ? "Sahip" : m.role === "admin" ? "Yönetici" : "Temsilci"}
               </span>
               <span className={`w-2 h-2 rounded-full ${m.status === "active" ? "bg-green-500" : "bg-gray-300"}`} />
-              <button className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"><FiEdit className="w-4 h-4" /></button>
+              <button 
+                onClick={() => alert(`${m.name} için düzenleme modalı açılacak...`)}
+                className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"
+              >
+                <FiEdit className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
@@ -222,7 +291,12 @@ function AISettings() {
               <p className="text-xs text-gray-500">AI müşteri sorularına otomatik cevap versin</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" defaultChecked className="sr-only peer" />
+              <input 
+                type="checkbox" 
+                checked={aiSettings.autoReply}
+                onChange={() => toggleAiSetting('autoReply')}
+                className="sr-only peer" 
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600" />
             </label>
           </div>
@@ -232,7 +306,12 @@ function AISettings() {
               <p className="text-xs text-gray-500">Mesajları uygun temsilciye otomatik yönlendir</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" defaultChecked className="sr-only peer" />
+              <input 
+                type="checkbox" 
+                checked={aiSettings.smartRouting}
+                onChange={() => toggleAiSetting('smartRouting')}
+                className="sr-only peer" 
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600" />
             </label>
           </div>
@@ -242,12 +321,33 @@ function AISettings() {
               <p className="text-xs text-gray-500">Müşteri mesajlarındaki duyguları analiz et</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" />
+              <input 
+                type="checkbox" 
+                checked={aiSettings.sentimentAnalysis}
+                onChange={() => toggleAiSetting('sentimentAnalysis')}
+                className="sr-only peer" 
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600" />
             </label>
           </div>
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">AI Yanıt Tonu</label>
+            <select 
+              value={aiSettings.tone}
+              onChange={(e) => setAiSettings(prev => ({ ...prev, tone: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+            >
+              <option value="professional">Profesyonel</option>
+              <option value="friendly">Samimi</option>
+              <option value="formal">Resmi</option>
+              <option value="casual">Günlük</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
             <select className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20">
               <option>Profesyonel</option>
               <option>Samimi</option>
