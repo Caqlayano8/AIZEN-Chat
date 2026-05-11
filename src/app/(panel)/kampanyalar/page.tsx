@@ -19,17 +19,33 @@ import {
 } from "react-icons/fi";
 import { mockCampaigns } from "@/lib/mock-data";
 import { ChannelIcon } from "@/components/ChannelIcon";
+import { useToast } from "@/components/Toast";
 
 export default function CampaignsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [campaigns, setCampaigns] = useState(mockCampaigns);
+  const { showToast } = useToast();
 
-  const filtered = filter === "all" ? mockCampaigns : mockCampaigns.filter((c) => c.status === filter);
+  const handlePause = (id: string) => {
+    setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, status: "paused" } : c));
+    showToast("Kampanya duraklatıldı", "warning");
+  };
+  const handleResume = (id: string) => {
+    setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" } : c));
+    showToast("Kampanya devam ettiriliyor");
+  };
+  const handleDeleteCampaign = (id: string) => {
+    setCampaigns((prev) => prev.filter((c) => c.id !== id));
+    showToast("Kampanya silindi", "warning");
+  };
 
-  const totalSent = mockCampaigns.reduce((a, c) => a + c.sentCount, 0);
-  const totalDelivered = mockCampaigns.reduce((a, c) => a + c.deliveredCount, 0);
-  const totalRead = mockCampaigns.reduce((a, c) => a + c.readCount, 0);
-  const totalResponse = mockCampaigns.reduce((a, c) => a + c.responseCount, 0);
+  const filtered = filter === "all" ? campaigns : campaigns.filter((c) => c.status === filter);
+
+  const totalSent = campaigns.reduce((a, c) => a + c.sentCount, 0);
+  const totalDelivered = campaigns.reduce((a, c) => a + c.deliveredCount, 0);
+  const totalRead = campaigns.reduce((a, c) => a + c.readCount, 0);
+  const totalResponse = campaigns.reduce((a, c) => a + c.responseCount, 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -149,14 +165,14 @@ export default function CampaignsPage() {
               </div>
               <div className="flex items-center gap-1">
                 {campaign.status === "active" && (
-                  <button className="p-1.5 rounded-lg hover:bg-gray-100 text-yellow-500"><FiPause className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handlePause(campaign.id)} className="p-1.5 rounded-lg hover:bg-gray-100 text-yellow-500 transition-colors"><FiPause className="w-3.5 h-3.5" /></button>
                 )}
                 {campaign.status === "paused" && (
-                  <button className="p-1.5 rounded-lg hover:bg-gray-100 text-green-500"><FiPlay className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleResume(campaign.id)} className="p-1.5 rounded-lg hover:bg-gray-100 text-green-500 transition-colors"><FiPlay className="w-3.5 h-3.5" /></button>
                 )}
-                <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><FiEdit className="w-3.5 h-3.5" /></button>
-                <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><FiTrendingUp className="w-3.5 h-3.5" /></button>
-                <button className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><FiTrash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => showToast("Kampanya düzenleme açıldı", "info")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><FiEdit className="w-3.5 h-3.5" /></button>
+                <button onClick={() => showToast("Kampanya istatistikleri yükleniyor", "info")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><FiTrendingUp className="w-3.5 h-3.5" /></button>
+                <button onClick={() => handleDeleteCampaign(campaign.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><FiTrash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
           </div>
@@ -206,7 +222,7 @@ export default function CampaignsPage() {
               <div>
                 <label className="text-xs text-gray-500 font-medium mb-1 block">Mesaj Şablonu</label>
                 <textarea rows={4} placeholder="Mesaj içeriğinizi yazın veya AI ile oluşturun..." className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 resize-none" />
-                <button className="mt-2 flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 font-medium">
+                <button onClick={() => showToast("AI mesaj önerileri oluşturuluyor...", "info")} className="mt-2 flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors">
                   <FiZap className="w-3 h-3" /> AI ile mesaj oluştur
                 </button>
               </div>
@@ -220,8 +236,8 @@ export default function CampaignsPage() {
             </div>
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
-              <button className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200">Taslak Kaydet</button>
-              <button className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700">Gönder</button>
+              <button onClick={() => { showToast("Taslak kaydedildi"); setShowCreate(false); }} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors">Taslak Kaydet</button>
+              <button onClick={() => { showToast("Kampanya gönderildi"); setShowCreate(false); }} className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors">Gönder</button>
             </div>
           </div>
         </div>

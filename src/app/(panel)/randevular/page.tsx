@@ -15,6 +15,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { mockAppointments } from "@/lib/mock-data";
+import { useToast } from "@/components/Toast";
 
 const typeConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   meeting: { label: "Toplantı", icon: FiUser, color: "bg-blue-100 text-blue-600" },
@@ -31,10 +32,25 @@ export default function AppointmentsPage() {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [appointments, setAppointments] = useState(mockAppointments);
+  const { showToast } = useToast();
+
+  const handleConfirm = (id: string) => {
+    setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: "confirmed" } : a));
+    showToast("Randevu onaylandı");
+  };
+  const handleCancel = (id: string) => {
+    setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: "cancelled" } : a));
+    showToast("Randevu iptal edildi", "warning");
+  };
+  const handleDelete = (id: string) => {
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
+    showToast("Randevu silindi", "warning");
+  };
 
   const filtered = filter === "all"
-    ? mockAppointments
-    : mockAppointments.filter((a) => a.status === filter);
+    ? appointments
+    : appointments.filter((a) => a.status === filter);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -119,12 +135,12 @@ export default function AppointmentsPage() {
                   <div className="flex items-center gap-1">
                     {apt.status === "scheduled" && (
                       <>
-                        <button className="p-1.5 rounded-lg hover:bg-green-50 text-green-500"><FiCheck className="w-4 h-4" /></button>
-                        <button className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><FiX className="w-4 h-4" /></button>
+                        <button onClick={() => handleConfirm(apt.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500 transition-colors" title="Onayla"><FiCheck className="w-4 h-4" /></button>
+                        <button onClick={() => handleCancel(apt.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors" title="İptal Et"><FiX className="w-4 h-4" /></button>
                       </>
                     )}
-                    <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><FiEdit className="w-4 h-4" /></button>
-                    <button className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><FiTrash2 className="w-4 h-4" /></button>
+                    <button onClick={() => showToast("Randevu düzenleme açıldı", "info")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="Düzenle"><FiEdit className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(apt.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Sil"><FiTrash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -145,7 +161,7 @@ export default function AppointmentsPage() {
                 <div className="p-3 text-xs text-gray-400 font-medium">{hour}</div>
                 {days.map((d) => (
                   <div key={d} className="p-1 border-l border-gray-50 min-h-[48px] hover:bg-purple-50/50 cursor-pointer transition-colors">
-                    {mockAppointments.filter((a) => a.time === hour).slice(0, 1).map((a) => (
+                    {appointments.filter((a) => a.time === hour).slice(0, 1).map((a) => (
                       <div key={a.id} className="bg-purple-100 text-purple-700 text-[10px] p-1.5 rounded-lg">
                         <div className="font-semibold truncate">{a.title}</div>
                         <div className="text-purple-500 truncate">{a.contactName}</div>
@@ -221,7 +237,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
-              <button className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700">Oluştur</button>
+              <button onClick={() => { showToast("Randevu oluşturuldu"); setShowCreate(false); }} className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors">Oluştur</button>
             </div>
           </div>
         </div>

@@ -22,6 +22,7 @@ import {
 } from "react-icons/fi";
 import { mockContacts, mockMessages } from "@/lib/mock-data";
 import { ChannelIcon, channelConfig } from "@/components/ChannelIcon";
+import { useToast } from "@/components/Toast";
 import type { Contact, Message, ChannelType } from "@/types";
 
 const channelFilters: { value: string; label: string }[] = [
@@ -41,6 +42,36 @@ export default function MessagesPage() {
   const [channelFilter, setChannelFilter] = useState("all");
   const [showAI, setShowAI] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
+  const [starred, setStarred] = useState<Set<string>>(new Set());
+  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>(mockMessages);
+  const { showToast } = useToast();
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim() || !selectedContact) return;
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      contactId: selectedContact.id,
+      sender: "agent",
+      content: messageInput,
+      type: "text",
+      channel: selectedContact.source,
+      timestamp: new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+      status: "sent",
+    };
+    setLocalMessages((prev) => ({
+      ...prev,
+      [selectedContact.id]: [...(prev[selectedContact.id] || []), newMsg],
+    }));
+    setMessageInput("");
+  };
+
+  const toggleStar = () => {
+    if (!selectedContact) return;
+    const next = new Set(starred);
+    if (next.has(selectedContact.id)) { next.delete(selectedContact.id); showToast("Yıldız kaldırıldı", "info"); }
+    else { next.add(selectedContact.id); showToast("Görüşme yıldızlandı"); }
+    setStarred(next);
+  };
 
   const filteredContacts = mockContacts.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -48,7 +79,7 @@ export default function MessagesPage() {
     return matchesSearch && matchesChannel;
   });
 
-  const messages = selectedContact ? mockMessages[selectedContact.id] || [] : [];
+  const messages = selectedContact ? localMessages[selectedContact.id] || [] : [];
 
   const aiSuggestions = [
     "Merhaba! Size nasıl yardımcı olabilirim?",
@@ -154,16 +185,16 @@ export default function MessagesPage() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiPhone className="w-4 h-4" /></button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiVideo className="w-4 h-4" /></button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiStar className="w-4 h-4" /></button>
+              <button onClick={() => showToast("Sesli arama başlatılıyor...", "info")} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiPhone className="w-4 h-4" /></button>
+              <button onClick={() => showToast("Görüntülü arama başlatılıyor...", "info")} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiVideo className="w-4 h-4" /></button>
+              <button onClick={toggleStar} className={`p-2 rounded-lg hover:bg-gray-100 ${selectedContact && starred.has(selectedContact.id) ? "text-yellow-500" : "text-gray-500"}`}><FiStar className="w-4 h-4" /></button>
               <button
                 onClick={() => setShowContactInfo(!showContactInfo)}
                 className={`p-2 rounded-lg text-gray-500 ${showContactInfo ? "bg-purple-100 text-purple-600" : "hover:bg-gray-100"}`}
               >
                 <FiUser className="w-4 h-4" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiMoreVertical className="w-4 h-4" /></button>
+              <button onClick={() => showToast("Görüşme seçenekleri", "info")} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiMoreVertical className="w-4 h-4" /></button>
             </div>
           </div>
 
@@ -204,27 +235,28 @@ export default function MessagesPage() {
               {/* Input */}
               <div className="p-4 border-t border-gray-100 bg-white">
                 <div className="flex items-end gap-2">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiPaperclip className="w-5 h-5" /></button>
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiImage className="w-5 h-5" /></button>
+                  <button onClick={() => showToast("Dosya seçici açıldı", "info")} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiPaperclip className="w-5 h-5" /></button>
+                  <button onClick={() => showToast("Resim seçici açıldı", "info")} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><FiImage className="w-5 h-5" /></button>
                   <div className="flex-1 relative">
                     <input
                       type="text"
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       placeholder="Mesaj yazın..."
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 pr-20"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <button className="p-1 rounded hover:bg-gray-200 text-gray-400"><FiSmile className="w-4 h-4" /></button>
+                      <button onClick={() => showToast("Emoji paneli", "info")} className="p-1 rounded hover:bg-gray-200 text-gray-400"><FiSmile className="w-4 h-4" /></button>
                       <button onClick={() => setShowAI(!showAI)} className="p-1 rounded hover:bg-purple-100 text-purple-400"><FiZap className="w-4 h-4" /></button>
                     </div>
                   </div>
                   {messageInput ? (
-                    <button className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors">
+                    <button onClick={handleSendMessage} className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors">
                       <FiSend className="w-5 h-5" />
                     </button>
                   ) : (
-                    <button className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors">
+                    <button onClick={() => showToast("Ses kaydı başlatıldı", "info")} className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors">
                       <FiMic className="w-5 h-5" />
                     </button>
                   )}

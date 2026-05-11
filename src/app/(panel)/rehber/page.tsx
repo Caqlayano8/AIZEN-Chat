@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { mockContacts } from "@/lib/mock-data";
 import { ChannelIcon } from "@/components/ChannelIcon";
+import { useToast } from "@/components/Toast";
 import type { Contact } from "@/types";
 
 const statusOptions = [
@@ -33,6 +34,13 @@ export default function ContactsPage() {
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const { showToast } = useToast();
+
+  const handleDelete = () => {
+    showToast(`${selectedContacts.size} kişi silindi`, "warning");
+    setSelectedContacts(new Set());
+  };
 
   const filtered = mockContacts.filter((c) => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
@@ -61,10 +69,16 @@ export default function ContactsPage() {
           <p className="text-sm text-gray-500 mt-1">{mockContacts.length} kişi kayıtlı</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+          <button
+            onClick={() => showToast("İçe aktarma başlatıldı", "info")}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
             <FiUpload className="w-4 h-4" /> İçe Aktar
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+          <button
+            onClick={() => showToast("CSV dosyası indirildi")}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
             <FiDownload className="w-4 h-4" /> Dışa Aktar
           </button>
           <button
@@ -122,13 +136,22 @@ export default function ContactsPage() {
         {selectedContacts.size > 0 && (
           <div className="mt-3 flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
             <span className="text-sm text-purple-700 font-medium">{selectedContacts.size} kişi seçildi</span>
-            <button className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
+            <button
+              onClick={() => showToast(`${selectedContacts.size} kişi etiketlendi`)}
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+            >
               <FiTag className="w-3 h-3" /> Etiketle
             </button>
-            <button className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
+            <button
+              onClick={() => showToast(`${selectedContacts.size} kişiye mesaj gönderildi`)}
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+            >
               <FiMail className="w-3 h-3" /> Mesaj Gönder
             </button>
-            <button className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1">
+            <button
+              onClick={handleDelete}
+              className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
+            >
               <FiTrash2 className="w-3 h-3" /> Sil
             </button>
           </div>
@@ -190,8 +213,8 @@ export default function ContactsPage() {
                   <td className="p-4 text-xs text-gray-500">{contact.assignedTo || "-"}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-1">
-                      <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><FiEdit className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><FiMoreVertical className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setEditingContact(contact)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><FiEdit className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => showToast("Kişi seçenekleri", "info")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><FiMoreVertical className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
                 </tr>
@@ -260,7 +283,52 @@ export default function ContactsPage() {
             </div>
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
-              <button className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700">Kaydet</button>
+              <button
+                onClick={() => { showToast("Yeni kişi eklendi"); setShowAddModal(false); }}
+                className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors"
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Contact Modal */}
+      {editingContact && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setEditingContact(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg animate-slide-in" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Kişi Düzenle</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">Ad Soyad</label>
+                  <input type="text" defaultValue={editingContact.name} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">Şirket</label>
+                  <input type="text" defaultValue={editingContact.company || ""} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">Telefon</label>
+                  <input type="tel" defaultValue={editingContact.phone} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">E-posta</label>
+                  <input type="email" defaultValue={editingContact.email} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button onClick={() => setEditingContact(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
+              <button
+                onClick={() => { showToast("Kişi bilgileri güncellendi"); setEditingContact(null); }}
+                className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors"
+              >
+                Kaydet
+              </button>
             </div>
           </div>
         </div>
