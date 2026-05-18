@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiPlus,
   FiSend,
@@ -17,15 +18,64 @@ import {
   FiPause,
   FiPlay,
 } from "react-icons/fi";
-import { mockCampaigns } from "@/lib/mock-data";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { useToast } from "@/components/Toast";
+import { FiLoader } from "react-icons/fi";
+import type { ChannelType } from "@/types";
+
+interface CampaignItem {
+  id: string;
+  name: string;
+  type: string;
+  channel: string;
+  status: string;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  responseCount: number;
+  scheduledAt: string;
+  message: string;
+  description: string;
+  targetAudience: string;
+  createdAt: string;
+}
 
 export default function CampaignsPage() {
+  const { data: session } = useSession();
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [campaigns, setCampaigns] = useState(mockCampaigns);
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const { showToast } = useToast();
+  const companyId = (session?.user as Record<string, unknown>)?.companyId as string;
+
+  useEffect(() => {
+    if (!companyId) { setLoadingData(false); return; }
+    fetch(`/api/campaigns?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCampaigns(data.map((c: Record<string, unknown>) => ({
+            id: (c.id as string) || "",
+            name: (c.name as string) || "",
+            type: (c.type as string) || "broadcast",
+            channel: (c.channel as string) || "whatsapp",
+            status: (c.status as string) || "draft",
+            sentCount: (c.sentCount as number) || 0,
+            deliveredCount: (c.deliveredCount as number) || 0,
+            readCount: (c.readCount as number) || 0,
+            responseCount: (c.responseCount as number) || 0,
+            scheduledAt: c.scheduledAt ? new Date(c.scheduledAt as string).toLocaleDateString("tr-TR") : "",
+            message: (c.message as string) || "",
+            description: (c.description as string) || "",
+            targetAudience: (c.targetAudience as string) || "Tüm müşteriler",
+            createdAt: c.createdAt ? new Date(c.createdAt as string).toLocaleDateString("tr-TR") : "",
+          })));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingData(false));
+  }, [companyId]);
 
   const handlePause = (id: string) => {
     setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, status: "paused" } : c));
@@ -46,6 +96,14 @@ export default function CampaignsPage() {
   const totalDelivered = campaigns.reduce((a, c) => a + c.deliveredCount, 0);
   const totalRead = campaigns.reduce((a, c) => a + c.readCount, 0);
   const totalResponse = campaigns.reduce((a, c) => a + c.responseCount, 0);
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <FiLoader className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -108,7 +166,7 @@ export default function CampaignsPage() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                  <ChannelIcon channel={campaign.channel} size="md" />
+                  <ChannelIcon channel={campaign.channel as ChannelType} size="md" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">{campaign.name}</h3>

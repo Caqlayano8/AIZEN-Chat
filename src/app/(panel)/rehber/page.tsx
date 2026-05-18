@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiSearch,
   FiPlus,
@@ -15,10 +16,10 @@ import {
   FiTag,
   FiUsers,
 } from "react-icons/fi";
-import { mockContacts } from "@/lib/mock-data";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { useToast } from "@/components/Toast";
 import type { Contact } from "@/types";
+import { FiLoader } from "react-icons/fi";
 
 const statusOptions = [
   { value: "all", label: "Tümü" },
@@ -29,20 +30,61 @@ const statusOptions = [
 ];
 
 export default function ContactsPage() {
+  const { data: session } = useSession();
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
   const { showToast } = useToast();
+  const companyId = (session?.user as Record<string, unknown>)?.companyId as string;
+
+  useEffect(() => {
+    if (!companyId) { setLoadingData(false); return; }
+    fetch(`/api/contacts?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped: Contact[] = data.map((c: Record<string, unknown>) => ({
+            id: c.id as string,
+            name: (c.name as string) || "",
+            phone: (c.phone as string) || "",
+            email: (c.email as string) || "",
+            avatar: "",
+            company: "",
+            tags: c.tags ? JSON.parse(c.tags as string) : [],
+            source: ((c.source as string) || "whatsapp") as Contact["source"],
+            status: ((c.status as string) || "active") as Contact["status"],
+            lastMessage: "",
+            lastMessageTime: "",
+            unreadCount: 0,
+            assignedTo: "",
+            createdAt: c.createdAt ? new Date(c.createdAt as string).toLocaleDateString("tr-TR") : "",
+          }));
+          setContacts(mapped);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingData(false));
+  }, [companyId]);
 
   const handleDelete = () => {
     showToast(`${selectedContacts.size} kişi silindi`, "warning");
     setSelectedContacts(new Set());
   };
 
-  const filtered = mockContacts.filter((c) => {
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <FiLoader className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
+
+  const filtered = contacts.filter((c) => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || c.status === statusFilter;
     return matchSearch && matchStatus;
@@ -66,7 +108,7 @@ export default function ContactsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rehber / CRM</h1>
-          <p className="text-sm text-gray-500 mt-1">{mockContacts.length} kişi kayıtlı</p>
+          <p className="text-sm text-gray-500 mt-1">{contacts.length} kişi kayıtlı</p>
         </div>
         <div className="flex items-center gap-2">
           <button

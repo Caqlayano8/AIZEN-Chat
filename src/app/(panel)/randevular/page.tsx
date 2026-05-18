@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiPlus,
   FiCalendar,
@@ -14,8 +15,8 @@ import {
   FiCheck,
   FiX,
 } from "react-icons/fi";
-import { mockAppointments } from "@/lib/mock-data";
 import { useToast } from "@/components/Toast";
+import { FiLoader } from "react-icons/fi";
 
 const typeConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   meeting: { label: "Toplantı", icon: FiUser, color: "bg-blue-100 text-blue-600" },
@@ -28,12 +29,56 @@ const typeConfig: Record<string, { label: string; icon: React.ComponentType<{ cl
 const days = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, "0")}:00`);
 
+interface AppointmentItem {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  duration: number;
+  type: string;
+  status: string;
+  contactName: string;
+  location: string;
+  notes: string;
+  description: string;
+  assignedTo: string;
+}
+
 export default function AppointmentsPage() {
+  const { data: session } = useSession();
   const [view, setView] = useState<"list" | "calendar">("list");
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [appointments, setAppointments] = useState(mockAppointments);
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const { showToast } = useToast();
+  const companyId = (session?.user as Record<string, unknown>)?.companyId as string;
+
+  useEffect(() => {
+    if (!companyId) { setLoadingData(false); return; }
+    fetch(`/api/appointments?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setAppointments(data.map((a: Record<string, unknown>) => ({
+            id: (a.id as string) || "",
+            title: (a.title as string) || "",
+            date: a.date ? new Date(a.date as string).toLocaleDateString("tr-TR") : "",
+            time: (a.time as string) || "",
+            duration: (a.duration as number) || 30,
+            type: (a.type as string) || "meeting",
+            status: (a.status as string) || "scheduled",
+            contactName: ((a as Record<string, unknown>).contact as Record<string, unknown>)?.name as string || "",
+            location: (a.location as string) || "",
+            notes: (a.notes as string) || "",
+            description: (a.description as string) || "",
+            assignedTo: (a.assignedTo as string) || "",
+          })));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingData(false));
+  }, [companyId]);
 
   const handleConfirm = (id: string) => {
     setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: "confirmed" } : a));
@@ -52,12 +97,20 @@ export default function AppointmentsPage() {
     ? appointments
     : appointments.filter((a) => a.status === filter);
 
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <FiLoader className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Randevular</h1>
-          <p className="text-sm text-gray-500 mt-1">{mockAppointments.length} randevu planlandı</p>
+          <p className="text-sm text-gray-500 mt-1">{appointments.length} randevu planlandı</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-gray-100 rounded-xl p-1">

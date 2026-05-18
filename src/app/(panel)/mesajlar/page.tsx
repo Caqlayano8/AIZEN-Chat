@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiSearch,
   FiFilter,
@@ -19,9 +20,9 @@ import {
   FiImage,
   FiX,
   FiMessageSquare,
+  FiLoader,
 } from "react-icons/fi";
-import { mockContacts, mockMessages } from "@/lib/mock-data";
-import { ChannelIcon, channelConfig } from "@/components/ChannelIcon";
+import { ChannelIcon } from "@/components/ChannelIcon";
 import { useToast } from "@/components/Toast";
 import type { Contact, Message, ChannelType } from "@/types";
 
@@ -36,15 +37,79 @@ const channelFilters: { value: string; label: string }[] = [
 ];
 
 export default function MessagesPage() {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(mockContacts[0]);
+  const { data: session } = useSession();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [showAI, setShowAI] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [starred, setStarred] = useState<Set<string>>(new Set());
-  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>(mockMessages);
+  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({});
+  const [loadingData, setLoadingData] = useState(true);
   const { showToast } = useToast();
+  const companyId = (session?.user as Record<string, unknown>)?.companyId as string;
+
+  useEffect(() => {
+    if (!companyId) { setLoadingData(false); return; }
+    fetch(`/api/contacts?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const mapped: Contact[] = data.map((c: Record<string, unknown>) => ({
+            id: c.id as string,
+            name: c.name as string || "",
+            phone: c.phone as string || "",
+            email: c.email as string || "",
+            avatar: "",
+            company: "",
+            tags: c.tags ? JSON.parse(c.tags as string) : [],
+            source: ((c.source as string) || "whatsapp") as Contact["source"],
+            status: ((c.status as string) || "active") as Contact["status"],
+            lastMessage: "",
+            lastMessageTime: "",
+            unreadCount: 0,
+            assignedTo: "",
+            createdAt: c.createdAt ? new Date(c.createdAt as string).toLocaleDateString("tr-TR") : "",
+          }));
+          setContacts(mapped);
+          if (mapped.length > 0) setSelectedContact(mapped[0]);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingData(false));
+  }, [companyId]);
+
+  useEffect(() => {
+    if (!selectedContact || !companyId) return;
+    fetch(`/api/conversations?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((convs) => {
+        if (!Array.isArray(convs)) return;
+        const conv = convs.find((c: Record<string, unknown>) => c.contactId === selectedContact.id);
+        if (conv) {
+          fetch(`/api/messages?conversationId=${(conv as Record<string, unknown>).id}`)
+            .then((r) => r.json())
+            .then((msgs) => {
+              if (Array.isArray(msgs)) {
+                const mapped: Message[] = msgs.map((m: Record<string, unknown>) => ({
+                  id: m.id as string,
+                  contactId: selectedContact.id,
+                  sender: ((m.sender as string) || "contact") as Message["sender"],
+                  content: (m.content as string) || "",
+                  type: "text" as Message["type"],
+                  channel: ((m.channel as string) || "whatsapp") as Message["channel"],
+                  timestamp: m.createdAt ? new Date(m.createdAt as string).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "",
+                  status: ((m.status as string) || "delivered") as Message["status"],
+                }));
+                setLocalMessages((prev) => ({ ...prev, [selectedContact.id]: mapped }));
+              }
+            });
+        }
+      })
+      .catch(console.error);
+  }, [selectedContact, companyId]);
 
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedContact) return;
@@ -73,7 +138,7 @@ export default function MessagesPage() {
     setStarred(next);
   };
 
-  const filteredContacts = mockContacts.filter((c) => {
+  const filteredContacts = contacts.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesChannel = channelFilter === "all" || c.source === channelFilter;
     return matchesSearch && matchesChannel;
@@ -87,6 +152,14 @@ export default function MessagesPage() {
     "Randevu talebinizi aldık. En kısa sürede dönüş yapacağız.",
     "Kampanyamızdan yararlanmak için son 3 gün!",
   ];
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <FiLoader className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-7rem)] bg-white rounded-2xl border border-gray-100 overflow-hidden animate-fade-in">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiPackage,
   FiTruck,
@@ -16,8 +17,8 @@ import {
   FiCalendar,
   FiDollarSign,
 } from "react-icons/fi";
-import { mockOrders } from "@/lib/mock-data";
 import type { Order } from "@/types";
+import { FiLoader } from "react-icons/fi";
 
 const statusConfig: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
   pending: { label: "Bekliyor", cls: "bg-yellow-100 text-yellow-700", icon: FiClock },
@@ -30,34 +31,74 @@ const statusConfig: Record<string, { label: string; cls: string; icon: React.Com
 };
 
 export default function CargoPage() {
+  const { data: session } = useSession();
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const companyId = (session?.user as Record<string, unknown>)?.companyId as string;
 
-  const filtered = mockOrders.filter((o) => {
+  useEffect(() => {
+    if (!companyId) { setLoadingData(false); return; }
+    fetch(`/api/orders?companyId=${companyId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setOrders(data.map((o: Record<string, unknown>) => ({
+            id: (o.id as string) || "",
+            orderNumber: (o.orderNumber as string) || "",
+            contactId: (o.contactId as string) || "",
+            contactName: ((o.contact as Record<string, unknown>)?.name as string) || "",
+            products: [],
+            totalAmount: (o.totalAmount as number) || 0,
+            currency: (o.currency as string) || "TRY",
+            status: ((o.status as string) || "pending") as Order["status"],
+            trackingNumber: (o.trackingNumber as string) || "",
+            trackingUrl: "",
+            carrier: (o.carrier as string) || "",
+            shippingAddress: (o.shippingAddress as string) || "",
+            createdAt: o.createdAt ? new Date(o.createdAt as string).toLocaleDateString("tr-TR") : "",
+            updatedAt: o.updatedAt ? new Date(o.updatedAt as string).toLocaleDateString("tr-TR") : "",
+          })));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingData(false));
+  }, [companyId]);
+
+  const filtered = orders.filter((o) => {
     const matchSearch = o.orderNumber.toLowerCase().includes(search.toLowerCase()) || o.contactName.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const totalRevenue = mockOrders.reduce((a, o) => a + o.totalAmount, 0);
+  const totalRevenue = orders.reduce((a, o) => a + o.totalAmount, 0);
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <FiLoader className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sipariş & Kargo Takip</h1>
-          <p className="text-sm text-gray-500 mt-1">{mockOrders.length} sipariş</p>
+          <p className="text-sm text-gray-500 mt-1">{orders.length} sipariş</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Toplam Sipariş", value: mockOrders.length, icon: FiPackage, color: "from-blue-500 to-indigo-600" },
-          { label: "Kargoda", value: mockOrders.filter((o) => o.status === "shipped").length, icon: FiTruck, color: "from-purple-500 to-violet-600" },
-          { label: "Teslim Edilen", value: mockOrders.filter((o) => o.status === "delivered").length, icon: FiCheck, color: "from-green-500 to-emerald-600" },
-          { label: "Bekleyen", value: mockOrders.filter((o) => o.status === "pending" || o.status === "confirmed" || o.status === "processing").length, icon: FiClock, color: "from-yellow-500 to-orange-500" },
+          { label: "Toplam Sipariş", value: orders.length, icon: FiPackage, color: "from-blue-500 to-indigo-600" },
+          { label: "Kargoda", value: orders.filter((o) => o.status === "shipped").length, icon: FiTruck, color: "from-purple-500 to-violet-600" },
+          { label: "Teslim Edilen", value: orders.filter((o) => o.status === "delivered").length, icon: FiCheck, color: "from-green-500 to-emerald-600" },
+          { label: "Bekleyen", value: orders.filter((o) => o.status === "pending" || o.status === "confirmed" || o.status === "processing").length, icon: FiClock, color: "from-yellow-500 to-orange-500" },
           { label: "Toplam Gelir", value: `${(totalRevenue / 1000).toFixed(0)}K TRY`, icon: FiDollarSign, color: "from-pink-500 to-rose-600" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100">

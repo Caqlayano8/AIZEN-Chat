@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { FiSearch, FiBell, FiUser, FiLogOut, FiSettings, FiChevronDown, FiMenu } from "react-icons/fi";
 import { useAppStore } from "@/lib/store";
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function Header() {
+  const { data: session } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const { notifications, markNotificationRead, markAllRead, setSidebarOpen, sidebarOpen } = useAppStore();
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const user = session?.user as Record<string, unknown> | undefined;
+  const userName = (user?.name as string) || "Kullanıcı";
+  const userEmail = (user?.email as string) || "";
+  const companyName = (user?.companyName as string) || "AIZEN Chat";
+  const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/giris" });
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
@@ -26,16 +38,14 @@ export function Header() {
             className="pl-10 pr-4 py-2 w-80 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-            ⌘K
+            Ctrl+K
           </kbd>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Language Switcher */}
         <LanguageSwitcher />
 
-        {/* Notifications */}
         <div className="relative">
           <button
             onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
@@ -88,18 +98,17 @@ export function Header() {
           )}
         </div>
 
-        {/* Profile */}
         <div className="relative">
           <button
             onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
             className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">MA</span>
+              <span className="text-white text-xs font-bold">{initials}</span>
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-700">Mehmet Aydın</p>
-              <p className="text-[10px] text-gray-400">Demo Şirket A.Ş.</p>
+              <p className="text-sm font-medium text-gray-700">{userName}</p>
+              <p className="text-[10px] text-gray-400">{companyName}</p>
             </div>
             <FiChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
           </button>
@@ -107,8 +116,8 @@ export function Header() {
           {profileOpen && (
             <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 animate-slide-in overflow-hidden">
               <div className="p-3 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-900">Mehmet Aydın</p>
-                <p className="text-xs text-gray-500">mehmet@demosirket.com</p>
+                <p className="text-sm font-medium text-gray-900">{userName}</p>
+                <p className="text-xs text-gray-500">{userEmail}</p>
               </div>
               <div className="py-1">
                 <Link href="/ayarlar" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setProfileOpen(false)}>
@@ -119,9 +128,9 @@ export function Header() {
                 </Link>
               </div>
               <div className="border-t border-gray-100 py-1">
-                <Link href="/giris" className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50" onClick={() => setProfileOpen(false)}>
+                <button onClick={handleSignOut} className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left">
                   <FiLogOut className="w-4 h-4" /> Çıkış Yap
-                </Link>
+                </button>
               </div>
             </div>
           )}
