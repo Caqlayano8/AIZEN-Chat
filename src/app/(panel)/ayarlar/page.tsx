@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiUser,
   FiSettings,
@@ -20,6 +20,10 @@ import {
   FiCopy,
   FiEye,
   FiEyeOff,
+  FiSmartphone,
+  FiLogIn,
+  FiKey,
+  FiCamera,
 } from "react-icons/fi";
 import { FaWhatsapp, FaInstagram, FaTelegram, FaFacebook } from "react-icons/fa";
 import { mockCompany } from "@/lib/mock-data";
@@ -158,6 +162,44 @@ interface ChannelConfig {
   notifications: boolean;
 }
 
+type ConnectionMethod = "qr" | "api" | "oauth" | "smtp";
+
+interface ConnectionOption {
+  method: ConnectionMethod;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}
+
+const channelConnectionOptions: Record<string, ConnectionOption[]> = {
+  whatsapp: [
+    { method: "qr", label: "QR Kod ile Bağlan", icon: FiSmartphone, description: "WhatsApp uygulamanızdan QR kodu taratarak anında bağlanın" },
+    { method: "api", label: "API Token ile Bağlan", icon: FiKey, description: "Meta Business API kullanarak profesyonel entegrasyon yapın" },
+  ],
+  instagram: [
+    { method: "oauth", label: "Facebook ile Giriş Yap", icon: FiLogIn, description: "Facebook hesabınızla giriş yaparak Instagram'ı bağlayın" },
+    { method: "api", label: "API Token ile Bağlan", icon: FiKey, description: "Instagram Graph API token kullanarak bağlanın" },
+  ],
+  telegram: [
+    { method: "qr", label: "QR Kod ile Bağlan", icon: FiSmartphone, description: "Telegram uygulamanızdan QR kodu taratın" },
+    { method: "api", label: "Bot Token ile Bağlan", icon: FiKey, description: "@BotFather'dan aldığınız token ile bot bağlayın" },
+  ],
+  facebook: [
+    { method: "oauth", label: "Facebook ile Giriş Yap", icon: FiLogIn, description: "Facebook hesabınızla giriş yaparak sayfanızı bağlayın" },
+    { method: "api", label: "API Token ile Bağlan", icon: FiKey, description: "Page Access Token kullanarak bağlanın" },
+  ],
+  email: [
+    { method: "oauth", label: "Gmail / Outlook ile Giriş", icon: FiLogIn, description: "Google veya Microsoft hesabınızla güvenli giriş yapın" },
+    { method: "smtp", label: "SMTP / API ile Bağlan", icon: FiKey, description: "SMTP sunucu bilgileri veya Resend/SendGrid API key ile bağlanın" },
+  ],
+  sms: [
+    { method: "api", label: "API ile Bağlan", icon: FiKey, description: "Twilio veya Netgsm API bilgileri ile bağlanın" },
+  ],
+  webchat: [
+    { method: "api", label: "Widget Oluştur", icon: FiGlobe, description: "Web sitenize ekleyebileceğiniz chat widget'ı oluşturun" },
+  ],
+};
+
 const channelFieldConfig: Record<string, { label: string; fields: { key: keyof ChannelConfig; label: string; placeholder: string; type?: string }[]; guide: string }> = {
   whatsapp: {
     label: "WhatsApp Business",
@@ -224,6 +266,188 @@ const channelFieldConfig: Record<string, { label: string; fields: { key: keyof C
   },
 };
 
+function QRCodeDisplay({ channel, onSuccess }: { channel: string; onSuccess: () => void }) {
+  const [status, setStatus] = useState<"waiting" | "scanned" | "connected">("waiting");
+  const [timer, setTimer] = useState(120);
+
+  const qrPatterns: Record<string, string[]> = {
+    whatsapp: [
+      "████ ██ ████ ██ ████",
+      "█  █ ██ █  █ ██ █  █",
+      "████ ██ ████ ██ ████",
+      "     ██      ██     ",
+      "████ ████████ ██████",
+      "█  █ ██    ██ █  █  ",
+      "████ ██ ████ ██ ████",
+      "     ██      ██     ",
+      "████ ██ ████ ██ ████",
+      "█  █ ██ █  █ ██ █  █",
+      "████ ██ ████ ██ ████",
+    ],
+    telegram: [
+      "████ ██ ██ ██ ████",
+      "█  █ ████████ █  █",
+      "████ ██    ██ ████",
+      "     ████████     ",
+      "██ ████  ████ ██  ",
+      "████ ██ ██ ██ ████",
+      "     ████████     ",
+      "████ ██    ██ ████",
+      "█  █ ████████ █  █",
+      "████ ██ ██ ██ ████",
+    ],
+  };
+
+  useEffect(() => {
+    if (status !== "waiting") return;
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  const handleSimulateScan = () => {
+    setStatus("scanned");
+    setTimeout(() => {
+      setStatus("connected");
+      setTimeout(onSuccess, 800);
+    }, 1500);
+  };
+
+  return (
+    <div className="flex flex-col items-center py-4">
+      <div className="relative">
+        <div className={`bg-white p-4 rounded-2xl border-2 transition-all ${
+          status === "waiting" ? "border-gray-200" : status === "scanned" ? "border-yellow-400" : "border-green-400"
+        }`}>
+          {status === "connected" ? (
+            <div className="w-48 h-48 flex items-center justify-center">
+              <div className="text-center">
+                <FiCheck className="w-16 h-16 text-green-500 mx-auto mb-2" />
+                <p className="text-green-600 font-semibold">Bağlandı!</p>
+              </div>
+            </div>
+          ) : (
+            <div className="w-48 h-48 flex items-center justify-center bg-gray-50 rounded-xl relative">
+              <pre className="text-[8px] leading-[9px] font-mono text-gray-800 select-none">
+                {(qrPatterns[channel] || qrPatterns.whatsapp).join("\n")}
+              </pre>
+              {status === "scanned" && (
+                <div className="absolute inset-0 bg-yellow-50/80 flex items-center justify-center rounded-xl">
+                  <div className="text-center">
+                    <FiSmartphone className="w-8 h-8 text-yellow-500 mx-auto mb-1 animate-pulse" />
+                    <p className="text-xs text-yellow-600 font-medium">Doğrulanıyor...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {status === "waiting" && (
+          <div className="absolute -top-2 -right-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
+          </div>
+        )}
+      </div>
+
+      {status === "waiting" && (
+        <>
+          <div className="mt-4 space-y-2 text-center">
+            <p className="text-sm font-medium text-gray-700">
+              {channel === "whatsapp" ? "WhatsApp" : "Telegram"} uygulamanızı açın
+            </p>
+            <div className="text-xs text-gray-500 space-y-1">
+              {channel === "whatsapp" ? (
+                <>
+                  <p>1. WhatsApp &gt; Ayarlar &gt; Bağlı Cihazlar</p>
+                  <p>2. &quot;Cihaz Bağla&quot; butonuna tıklayın</p>
+                  <p>3. QR kodu telefonunuzla taratın</p>
+                </>
+              ) : (
+                <>
+                  <p>1. Telegram &gt; Ayarlar &gt; Cihazlar</p>
+                  <p>2. &quot;QR Kod ile Giriş&quot; seçin</p>
+                  <p>3. QR kodu telefonunuzla taratın</p>
+                </>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleSimulateScan}
+            className="mt-4 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs hover:bg-gray-200 transition-colors"
+          >
+            <FiCamera className="w-3 h-3 inline mr-1" /> Test: Taramayı Simüle Et
+          </button>
+          {timer === 0 && (
+            <button
+              onClick={() => setTimer(120)}
+              className="mt-2 px-4 py-2 text-purple-600 text-xs font-medium hover:bg-purple-50 rounded-xl"
+            >
+              <FiRefreshCw className="w-3 h-3 inline mr-1" /> Yeni QR Kod Oluştur
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function OAuthLoginButton({ channel, onSuccess }: { channel: string; onSuccess: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
+
+  const oauthProviders: Record<string, { name: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }[]> = {
+    instagram: [
+      { name: "Facebook ile Giriş Yap", color: "text-white", bg: "bg-blue-600 hover:bg-blue-700", icon: FaFacebook },
+    ],
+    facebook: [
+      { name: "Facebook ile Giriş Yap", color: "text-white", bg: "bg-blue-600 hover:bg-blue-700", icon: FaFacebook },
+    ],
+    email: [
+      { name: "Google ile Bağlan (Gmail)", color: "text-gray-700", bg: "bg-white border border-gray-300 hover:bg-gray-50", icon: FiGlobe },
+      { name: "Microsoft ile Bağlan (Outlook)", color: "text-white", bg: "bg-[#0078d4] hover:bg-[#006abe]", icon: FiGlobe },
+    ],
+  };
+
+  const providers = oauthProviders[channel] || [];
+
+  const handleOAuth = (providerName: string) => {
+    setLoading(true);
+    showToast(`${providerName} yetkilendirme penceresi açılıyor...`, "info");
+    setTimeout(() => {
+      showToast("Yetkilendirme başarılı!");
+      setLoading(false);
+      onSuccess();
+    }, 2000);
+  };
+
+  return (
+    <div className="space-y-3 py-4">
+      {providers.map((provider) => (
+        <button
+          key={provider.name}
+          onClick={() => handleOAuth(provider.name)}
+          disabled={loading}
+          className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all disabled:opacity-50 ${provider.bg} ${provider.color}`}
+        >
+          <provider.icon className="w-5 h-5" />
+          {loading ? "Yetkilendiriliyor..." : provider.name}
+        </button>
+      ))}
+      <div className="text-center">
+        <p className="text-xs text-gray-400 mt-2">
+          {channel === "instagram" && "Instagram hesabınızın bir Facebook Business sayfasına bağlı olması gerekir."}
+          {channel === "facebook" && "Facebook sayfanızın mesaj özelliğinin açık olması gerekir."}
+          {channel === "email" && "E-posta hesabınıza güvenli erişim için OAuth 2.0 kullanılır."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ChannelSettings() {
   const { showToast } = useToast();
   const [channels, setChannels] = useState(mockCompany.connectedChannels);
@@ -231,6 +455,7 @@ function ChannelSettings() {
   const [showConnectModal, setShowConnectModal] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [connectForm, setConnectForm] = useState<Partial<ChannelConfig>>({});
+  const [selectedMethod, setSelectedMethod] = useState<ConnectionMethod | null>(null);
   const [settingsForm, setSettingsForm] = useState<Partial<ChannelConfig>>({
     autoReply: "Merhaba! Mesajınızı aldık, en kısa sürede dönüş yapacağız.",
     notifications: true,
@@ -370,7 +595,7 @@ function ChannelSettings() {
                   </span>
                 ) : (
                   <button
-                    onClick={() => { setConnectForm({}); setShowConnectModal(ch.type); }}
+                    onClick={() => { setConnectForm({}); setSelectedMethod(null); setShowConnectModal(ch.type); }}
                     className="text-xs text-purple-600 font-medium hover:text-purple-700 flex items-center gap-1"
                   >
                     <FiPlus className="w-3 h-3" /> Bağlan
@@ -493,62 +718,157 @@ function ChannelSettings() {
       {/* Connect Channel Modal */}
       {showConnectModal && (() => {
         const cfg = channelFieldConfig[showConnectModal];
+        const options = channelConnectionOptions[showConnectModal] || [{ method: "api" as ConnectionMethod, label: "API ile Bağlan", icon: FiKey, description: "API bilgileri ile bağlanın" }];
+        const hasMultipleMethods = options.length > 1;
+
+        const handleQRSuccess = () => {
+          const identifier = showConnectModal === "whatsapp" ? "QR ile bağlandı" : "QR ile bağlandı";
+          setChannels((prev) => [
+            ...prev,
+            {
+              type: showConnectModal as "whatsapp" | "instagram" | "telegram" | "facebook" | "email" | "sms" | "webchat",
+              identifier,
+              status: "connected" as const,
+              connectedAt: new Date().toISOString().split("T")[0],
+            },
+          ]);
+          showToast(`${cfg?.label || "Kanal"} QR kod ile başarıyla bağlandı`);
+          setShowConnectModal(null);
+          setSelectedMethod(null);
+        };
+
+        const handleOAuthSuccess = () => {
+          const identifier = showConnectModal === "instagram" ? "Instagram OAuth" : showConnectModal === "facebook" ? "Facebook OAuth" : "OAuth bağlantı";
+          setChannels((prev) => [
+            ...prev,
+            {
+              type: showConnectModal as "whatsapp" | "instagram" | "telegram" | "facebook" | "email" | "sms" | "webchat",
+              identifier,
+              status: "connected" as const,
+              connectedAt: new Date().toISOString().split("T")[0],
+            },
+          ]);
+          showToast(`${cfg?.label || "Kanal"} OAuth ile başarıyla bağlandı`);
+          setShowConnectModal(null);
+          setSelectedMethod(null);
+        };
+
         return (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowConnectModal(null)}>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setShowConnectModal(null); setSelectedMethod(null); }}>
             <div className="bg-white rounded-2xl p-6 w-full max-w-lg animate-slide-in max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900">{cfg?.label || "Kanal"} Bağla</h2>
-                <button onClick={() => setShowConnectModal(null)} className="p-2 hover:bg-gray-100 rounded-lg"><FiX className="w-5 h-5" /></button>
+                <div className="flex items-center gap-3">
+                  <ChannelIcon channel={showConnectModal as ChannelType} size="lg" />
+                  <h2 className="text-lg font-bold text-gray-900">{cfg?.label || "Kanal"} Bağla</h2>
+                </div>
+                <button onClick={() => { setShowConnectModal(null); setSelectedMethod(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><FiX className="w-5 h-5" /></button>
               </div>
 
-              {cfg?.guide && (
-                <div className="p-3 bg-blue-50 rounded-xl mb-4">
-                  <p className="text-xs text-blue-700"><strong>Nasıl yapılır:</strong> {cfg.guide}</p>
+              {/* Method Selection */}
+              {hasMultipleMethods && !selectedMethod && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500 mb-3">Bağlantı yöntemi seçin:</p>
+                  {options.map((opt) => (
+                    <button
+                      key={opt.method}
+                      onClick={() => setSelectedMethod(opt.method)}
+                      className="w-full flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-sm transition-all text-left group"
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-100 transition-colors">
+                        <opt.icon className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 group-hover:text-purple-700">{opt.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{opt.description}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
 
-              <div className="space-y-4">
-                {cfg?.fields.map((field) => (
-                  <div key={field.key}>
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">{field.label}</label>
-                    {field.key === "webhookUrl" ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={`${webhookBase}/api/webhooks/${showConnectModal}`}
-                          className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm border border-gray-200 text-gray-500"
-                        />
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(`${webhookBase}/api/webhooks/${showConnectModal}`); showToast("Webhook URL kopyalandı"); }}
-                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
-                        >
-                          <FiCopy className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <input
-                        type={field.type || "text"}
-                        value={(connectForm[field.key] as string) || ""}
-                        onChange={(e) => setConnectForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        placeholder={field.placeholder}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
+              {/* QR Code Method */}
+              {(selectedMethod === "qr") && (
+                <div>
+                  {hasMultipleMethods && (
+                    <button onClick={() => setSelectedMethod(null)} className="text-xs text-purple-600 hover:text-purple-700 mb-3 flex items-center gap-1">
+                      ← Yöntem Seçimine Dön
+                    </button>
+                  )}
+                  <QRCodeDisplay channel={showConnectModal} onSuccess={handleQRSuccess} />
+                </div>
+              )}
 
-              <div className="flex items-center justify-end gap-3 mt-6">
-                <button onClick={() => setShowConnectModal(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
-                <button
-                  onClick={handleConnect}
-                  disabled={saving}
-                  className="px-5 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50"
-                >
-                  {saving ? "Bağlanıyor..." : "Bağlan"}
-                </button>
-              </div>
+              {/* OAuth Method */}
+              {(selectedMethod === "oauth") && (
+                <div>
+                  {hasMultipleMethods && (
+                    <button onClick={() => setSelectedMethod(null)} className="text-xs text-purple-600 hover:text-purple-700 mb-3 flex items-center gap-1">
+                      ← Yöntem Seçimine Dön
+                    </button>
+                  )}
+                  <OAuthLoginButton channel={showConnectModal} onSuccess={handleOAuthSuccess} />
+                </div>
+              )}
+
+              {/* API / SMTP Method */}
+              {(selectedMethod === "api" || selectedMethod === "smtp" || (!hasMultipleMethods && !selectedMethod)) && (
+                <div>
+                  {hasMultipleMethods && (
+                    <button onClick={() => setSelectedMethod(null)} className="text-xs text-purple-600 hover:text-purple-700 mb-3 flex items-center gap-1">
+                      ← Yöntem Seçimine Dön
+                    </button>
+                  )}
+
+                  {cfg?.guide && (
+                    <div className="p-3 bg-blue-50 rounded-xl mb-4">
+                      <p className="text-xs text-blue-700"><strong>Nasıl yapılır:</strong> {cfg.guide}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    {cfg?.fields.map((field) => (
+                      <div key={field.key}>
+                        <label className="text-xs text-gray-500 font-medium mb-1 block">{field.label}</label>
+                        {field.key === "webhookUrl" ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={`${webhookBase}/api/webhooks/${showConnectModal}`}
+                              className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm border border-gray-200 text-gray-500"
+                            />
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(`${webhookBase}/api/webhooks/${showConnectModal}`); showToast("Webhook URL kopyalandı"); }}
+                              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+                            >
+                              <FiCopy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <input
+                            type={field.type || "text"}
+                            value={(connectForm[field.key] as string) || ""}
+                            onChange={(e) => setConnectForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                            placeholder={field.placeholder}
+                            className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 mt-6">
+                    <button onClick={() => { setShowConnectModal(null); setSelectedMethod(null); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">İptal</button>
+                    <button
+                      onClick={handleConnect}
+                      disabled={saving}
+                      className="px-5 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    >
+                      {saving ? "Bağlanıyor..." : "Bağlan"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
